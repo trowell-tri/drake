@@ -45,10 +45,10 @@ class ModelVisualizer:
       visualizer.AddModels(filename)
       visualizer.Run()
 
-    The class also provides a `parser` property to allow more complex
+    The class also provides a `parser()` method to allow more complex
     Parser handling, e.g. adding a model from a string::
 
-      visualizer.parser.AddModelsFromString(buffer_containing_model, 'sdf')
+      visualizer.parser().AddModelsFromString(buffer_containing_model, 'sdf')
 
     This class may also be run as a standalone command-line tool using the
     ``pydrake.visualization.model_visualizer`` script, or via
@@ -110,6 +110,7 @@ class ModelVisualizer:
         self._plant, self._scene_graph = AddMultibodyPlantSceneGraph(
             self._builder, time_step=0.0)
         self._parser = Parser(self._plant)
+        self._parser_accessed = False
 
     @staticmethod
     def _get_constructor_defaults():
@@ -140,7 +141,17 @@ class ModelVisualizer:
         This method cannot be used after Finalize is called.
         """
         assert self._parser is not None, "Finalize has already been called."
+        self._parser_accessed = True
         return self._parser
+
+    def package_map(self):
+        """
+        Returns the package map used by this visualizer's Parser.
+
+        This method cannot be used after Finalize is called.
+        """
+        assert self._parser is not None, "Finalize has already been called."
+        return self._parser.package_map()
 
     def meshcat(self):
         """
@@ -348,6 +359,7 @@ class ModelVisualizer:
         Only models added using AddModels() will be properly reloaded.
         If the parser() was accessed to add models directly to the parser
         then those models will not be properly reloaded by this method.
+        A warning message will be printed in this case.
 
         Args:
           position: an ndarray-like list of slider positions for the model(s);
@@ -371,6 +383,14 @@ class ModelVisualizer:
             self._sliders,
             self._context,
             self._plant_context)])
+
+        # Warn the user if the parser was directly accessed; this method
+        # *may* still work which is why we don't just abort.
+        if self._parser_accessed:
+            print("Warning: the Parser object of this ModelVisualizer was "
+                  "accessed via the parser() method before RunWithReload() "
+                  "was called; doing so may prevent model reloading from "
+                  "working properly.")
 
         # We don't just test 'position' because NumPy does weird things with
         # the truth values of arrays.

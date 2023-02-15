@@ -111,7 +111,7 @@ def _main():
                                   browser_new=args.browser_new,
                                   pyplot=args.pyplot)
 
-    package_map = visualizer.parser().package_map()
+    package_map = visualizer.package_map()
     package_map.PopulateFromRosPackagePath()
 
     # Resolve the filename if necessary.
